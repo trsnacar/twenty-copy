@@ -1,0 +1,77 @@
+{
+  "name": "sales-crm-tr-blueprint",
+  "version": 1,
+  "objects": [
+    {
+      "name": "Lead",
+      "label": "Potansiyel Müşteri",
+      "description": "Satış öncesi aday kayıtları",
+      "fields": [
+        { "name": "fullName", "type": "TEXT", "label": "Ad Soyad", "required": true },
+        { "name": "email", "type": "EMAIL", "label": "E-posta" },
+        { "name": "phone", "type": "PHONE", "label": "Telefon" },
+        { "name": "source", "type": "SELECT", "label": "Kaynak", "options": ["Web", "Referans", "LinkedIn", "Etkinlik", "Soğuk Arama"] },
+        { "name": "status", "type": "SELECT", "label": "Durum", "options": ["new", "contacted", "qualified", "converted", "lost"] },
+        { "name": "leadScore", "type": "NUMBER", "label": "Lead Skoru", "default": 0 },
+        { "name": "company", "type": "RELATION", "label": "Şirket", "relation": "Company" },
+        { "name": "owner", "type": "RELATION", "label": "Sorumlu", "relation": "Person" }
+      ]
+    },
+    {
+      "name": "Deal",
+      "label": "Fırsat",
+      "description": "Aktif satış fırsatları",
+      "fields": [
+        { "name": "title", "type": "TEXT", "label": "Fırsat Adı", "required": true },
+        { "name": "amount", "type": "CURRENCY", "label": "Tutar" },
+        { "name": "stage", "type": "SELECT", "label": "Aşama", "options": ["new", "discovery", "proposal", "negotiation", "won", "lost"] },
+        { "name": "probability", "type": "NUMBER", "label": "Kazanma Olasılığı", "default": 0 },
+        { "name": "expectedCloseDate", "type": "DATE", "label": "Beklenen Kapanış" },
+        { "name": "company", "type": "RELATION", "label": "Şirket", "relation": "Company" },
+        { "name": "contact", "type": "RELATION", "label": "İlgili Kişi", "relation": "Person" },
+        { "name": "owner", "type": "RELATION", "label": "Sorumlu", "relation": "Person" }
+      ]
+    },
+    {
+      "name": "Interaction",
+      "label": "Etkileşim",
+      "description": "Arama, toplantı, e-posta gibi müşteri temasları",
+      "fields": [
+        { "name": "type", "type": "SELECT", "label": "Tür", "options": ["call", "meeting", "email", "whatsapp"] },
+        { "name": "summary", "type": "TEXT", "label": "Özet" },
+        { "name": "happenedAt", "type": "DATE_TIME", "label": "Tarih" },
+        { "name": "deal", "type": "RELATION", "label": "Fırsat", "relation": "Deal" },
+        { "name": "nextStep", "type": "TEXT", "label": "Sonraki Adım" }
+      ]
+    }
+  ],
+  "views": [
+    {
+      "object": "Lead",
+      "type": "TABLE",
+      "name": "Lead Pipeline",
+      "sort": [{ "field": "leadScore", "direction": "DESC" }],
+      "filters": [{ "field": "status", "operator": "neq", "value": "converted" }]
+    },
+    {
+      "object": "Deal",
+      "type": "KANBAN",
+      "name": "Deal Pipeline",
+      "groupBy": "stage",
+      "sort": [{ "field": "amount", "direction": "DESC" }]
+    }
+  ],
+  "workflows": [
+    {
+      "name": "Deal Gecikme Uyarısı",
+      "trigger": "SCHEDULE_DAILY",
+      "conditions": [
+        "expectedCloseDate < now()",
+        "stage not in ['won','lost']"
+      ],
+      "actions": [
+        "createTask('Geciken fırsatı güncelle')"
+      ]
+    }
+  ]
+}
